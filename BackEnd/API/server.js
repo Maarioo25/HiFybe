@@ -27,7 +27,7 @@ const swaggerOptions = {
       { url: 'http://localhost:5000', description: 'API Local'}
     ]
   },
-  apis: ['./routes/*.js']
+  apis: ['./src/routes/*.js']
 };
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
@@ -37,13 +37,13 @@ app.get('/', (req, res) => {
   res.send('La API Funciona');
 });
 
-app.use('/usuarios', require('./routes/usuariosRoutes'));
-app.use('/canciones', require('./routes/cancionesRoutes'));
-app.use('/playlists', require('./routes/playlistsRoutes'));
-app.use('/reproducciones', require('./routes/reproduccionesRoutes'));
-app.use('/amistades', require('./routes/amistadesRoutes'));
-app.use('/conversaciones', require('./routes/conversacionesRoutes'));
-app.use('/notificaciones', require('./routes/notificacionesRoutes'));
+app.use('/usuarios', require('./src/routes/usuariosRoutes'));
+app.use('/canciones', require('./src/routes/cancionesRoutes'));
+app.use('/playlists', require('./src/routes/playlistsRoutes'));
+app.use('/reproducciones', require('./src/routes/reproduccionesRoutes'));
+app.use('/amistades', require('./src/routes/amistadesRoutes'));
+app.use('/conversaciones', require('./src/routes/conversacionesRoutes'));
+app.use('/notificaciones', require('./src/routes/notificacionesRoutes'));
 
 mongoose.connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
