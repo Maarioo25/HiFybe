@@ -1,0 +1,133 @@
+/* styles/form.css */
+.form-container {
+  width: 100%;
+  max-width: 400px;
+  margin: 80px auto;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  background-color: #ffffff;
+}
+
+.form-container h2 {
+  text-align: center;
+  margin-bottom: 25px;
+  color: #2c3e50;
+  font-size: 24px;
+}
+
+.form-container input {
+  padding: 12px 15px;
+  margin: 10px 0;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Estilos para el botón circular */
+.submit-circle-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 60px;
+  height: 60px;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+.submit-circle-btn:hover {
+  background-color: #2980b9;
+  transform: scale(1.1);
+}
+
+/* Resto de los estilos originales */
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.home-btn {
+  background-color: #3498db;
+  color: white;
+  padding: 12px;
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  text-align: center;
+  text-decoration: none;
+}
+
+.home-btn:hover {
+  background-color: #2980b9;
+}
+
+.google-btn {
+  background-color: #fff;
+  color: #2c3e50;
+  border: 1px solid #ddd !important;
+  padding: 12px;
+  margin: 10px 0;
+  width: 100%;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background-color 0.3s;
+}
+
+.google-btn:hover {
+  background-color: #f8f9fa;
+}
+
+.form-links {
+  text-align: center;
+  margin-top: 20px;
+  color: #666;
+  font-size: 14px;
+}
+
+.form-links a {
+  color: #3498db;
+  text-decoration: none;
+  margin-left: 8px;
+}
+
+.form-links a:hover {
+  text-decoration: underline;
+}
+
+.social-auth {
+  margin: 20px 0;
+  position: relative;
+}
+
+.social-auth::before,
+.social-auth::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background-color: #ddd;
+  margin: 10px 0;
+}
+
+.input-group {
+  margin-bottom: 15px;
+}
