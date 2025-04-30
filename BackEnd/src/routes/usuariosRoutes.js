@@ -111,7 +111,7 @@ router.post('/login', loginUsuario);
  *       500:
  *         description: Error del servidor.
  */
-router.get('/me', requireAuth, getCurrentUser);
+router.get('/me', getCurrentUser);
 
 /**
  * @swagger
@@ -126,7 +126,7 @@ router.get('/me', requireAuth, getCurrentUser);
  *       500:
  *         description: Error al cerrar sesi처n.
  */
-router.post('/logout', requireAuth, logoutUser); // Nueva ruta para cerrar sesi처n
+
 
 /**
  * @swagger
@@ -143,7 +143,7 @@ router.post('/logout', requireAuth, logoutUser); // Nueva ruta para cerrar sesi�
  *       401:
  *         description: No autenticado.
  */
-router.get('/', requireAuth, obtenerUsuarios); // Proteger esta ruta con requireAuth
+
 
 /**
  * @swagger
@@ -171,7 +171,7 @@ router.get('/', requireAuth, obtenerUsuarios); // Proteger esta ruta con require
  *       404:
  *         description: No se encontr처 un usuario con ese ID.
  */
-router.get('/:id', requireAuth, obtenerUsuarioPorId); // Proteger esta ruta con requireAuth
+
 
 /**
  * @swagger
@@ -218,7 +218,7 @@ router.get('/:id', requireAuth, obtenerUsuarioPorId); // Proteger esta ruta con 
  *       404:
  *         description: No se encontr처 un usuario con ese ID.
  */
-router.put('/:id', requireAuth, actualizarUsuario); // Proteger esta ruta con requireAuth
+
 
 /**
  * @swagger
@@ -244,7 +244,7 @@ router.put('/:id', requireAuth, actualizarUsuario); // Proteger esta ruta con re
  *       404:
  *         description: Usuario no encontrado.
  */
-router.delete('/:id', requireAuth, eliminarUsuario); // Proteger esta ruta con requireAuth
+
 
 /**
  * @swagger
@@ -349,5 +349,17 @@ router.get(
  *         description: Redirecci처n al frontend con error.
  */
 router.get('/google/failure', googleAuthFailureHandler); // Nueva ruta para fallo de Google
+
+
+
+router.post('/logout', requireAuth, logoutUser); // Nueva ruta para cerrar sesi처n
+router.delete('/:id', requireAuth, eliminarUsuario); // Proteger esta ruta con requireAuth
+router.put('/:id', requireAuth, actualizarUsuario); // Proteger esta ruta con requireAuth
+router.get('/:id', requireAuth, obtenerUsuarioPorId); // Proteger esta ruta con requireAuth
+router.get('/', requireAuth, obtenerUsuarios); // Proteger esta ruta con requireAuth
+
+
+
+
 
 module.exports = router;

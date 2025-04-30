@@ -4,7 +4,6 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const passport = require('passport');
-const session = require('express-session');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const bcrypt = require('bcryptjs');
 const swaggerUi = require('swagger-ui-express');
@@ -14,8 +13,6 @@ dotenv.config();
 
 const app = express();
 
-// Middleware básico
-app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
   origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
@@ -24,35 +21,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Session para Passport
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'default_secret',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-  },
-}));
-
 // Inicialización de Passport
 app.use(passport.initialize());
-app.use(passport.session());
-
-// Serialización y deserialización de usuario
-passport.serializeUser((user, done) => {
-  done(null, user._id);
-});
-
-passport.deserializeUser(async (id, done) => {
-  try {
-    const User = require('./src/models/usuario');
-    const user = await User.findById(id);
-    done(null, user);
-  } catch (err) {
-    done(err, null);
-  }
-});
 
 // Configurar estrategia de Google
 passport.use(new GoogleStrategy({

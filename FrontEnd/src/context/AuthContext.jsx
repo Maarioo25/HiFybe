@@ -72,6 +72,10 @@ export const AuthProvider = ({ children }) => {
     window.location.href = 'http://localhost:5000/usuarios/google';
   };
 
+  const appleLogin = () => { /* tu lógica */ };
+
+  const spotifyLogin = () => { /* tu lógica */ };
+
   const value = {
     user,
     loading,
@@ -79,6 +83,8 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     googleLogin,
+    appleLogin,
+    spotifyLogin
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
