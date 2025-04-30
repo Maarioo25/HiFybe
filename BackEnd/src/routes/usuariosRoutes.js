@@ -2,6 +2,9 @@
 const express = require('express');
 const router = express.Router();
 
+// Middleware de autenticación - Asegúrate de que verifica la sesión de Passport
+const requireAuth = require('../middleware/auth');
+
 // Controladores de usuario y autenticación
 const {
   registrarUsuario,
@@ -13,7 +16,10 @@ const {
   solicitarResetContrasena,
   resetearContrasena,
   googleAuth,
-  googleCallback
+  googleCallback,
+  googleAuthFailureHandler, // Importar el nuevo controlador
+  getCurrentUser, // Vamos a añadir este controlador para /me
+  logoutUser // Vamos a añadir este controlador para /logout
 } = require('../controllers/usuariosController');
 
 /**
@@ -79,24 +85,72 @@ router.post('/login', loginUsuario);
 
 /**
  * @swagger
- * /usuarios:
+ * /usuarios/me:
  *   get:
- *     summary: Listado de usuarios
- *     description: Endpoint para obtener la lista de todos los usuarios registrados.
+ *     summary: Obtener datos del usuario autenticado
+ *     description: Recupera la información del usuario actualmente autenticado a través de la cookie de sesión.
+ *     tags: [Usuarios]
+ *     security:
+ *       - cookieAuth: [] # Indica que este endpoint requiere la cookie de autenticación
+ *     responses:
+ *       200:
+ *         description: Datos del usuario autenticado.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 user:
+ *                   type: object
+ *                   description: Objeto con los datos del usuario (sin información sensible como contraseña).
+ *       401:
+ *         description: No autenticado o sesión inválida.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.get('/me', requireAuth, getCurrentUser);
+
+/**
+ * @swagger
+ * /usuarios/logout:
+ *   post:
+ *     summary: Cerrar sesión de usuario
+ *     description: Cierra la sesión del usuario autenticado eliminando la cookie de sesión.
  *     tags: [Usuarios]
  *     responses:
  *       200:
- *         description: Se devuelve la lista de todos los usuarios.
+ *         description: Sesión cerrada exitosamente.
+ *       500:
+ *         description: Error al cerrar sesión.
  */
-router.get('/', obtenerUsuarios);
+router.post('/logout', requireAuth, logoutUser); // Nueva ruta para cerrar sesión
+
+/**
+ * @swagger
+ * /usuarios:
+ *   get:
+ *     summary: Listado de usuarios
+ *     description: Endpoint para obtener la lista de todos los usuarios registrados. Requiere autenticación.
+ *     tags: [Usuarios]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Se devuelve la lista de todos los usuarios.
+ *       401:
+ *         description: No autenticado.
+ */
+router.get('/', requireAuth, obtenerUsuarios); // Proteger esta ruta con requireAuth
 
 /**
  * @swagger
  * /usuarios/{id}:
  *   get:
  *     summary: Obtener información de un usuario por su ID
- *     description: Recupera los datos completos de un usuario a partir del identificador proporcionado.
+ *     description: Recupera los datos completos de un usuario a partir del identificador proporcionado. Requiere autenticación.
  *     tags: [Usuarios]
+ *     security:
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -109,18 +163,22 @@ router.get('/', obtenerUsuarios);
  *         description: Se retornan los datos del usuario.
  *       400:
  *         description: ID inválido.
+ *       401:
+ *         description: No autenticado.
  *       404:
  *         description: No se encontró un usuario con ese ID.
  */
-router.get('/:id', obtenerUsuarioPorId);
+router.get('/:id', requireAuth, obtenerUsuarioPorId); // Proteger esta ruta con requireAuth
 
 /**
  * @swagger
  * /usuarios/{id}:
- *   put:
+ *   put:\
  *     summary: Actualización de datos de usuario
- *     description: Actualiza la información de un usuario existente identificándolo por su ID.
+ *     description: Actualiza la información de un usuario existente identificándolo por su ID. Requiere autenticación.
  *     tags: [Usuarios]
+ *     security:
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -152,18 +210,22 @@ router.get('/:id', obtenerUsuarioPorId);
  *     responses:
  *       200:
  *         description: Usuario actualizado correctamente.
+ *       401:
+ *         description: No autenticado.
  *       404:
  *         description: No se encontró un usuario con ese ID.
  */
-router.put('/:id', actualizarUsuario);
+router.put('/:id', requireAuth, actualizarUsuario); // Proteger esta ruta con requireAuth
 
 /**
  * @swagger
  * /usuarios/{id}:
  *   delete:
  *     summary: Eliminación de usuario
- *     description: Elimina el usuario identificado por su ID.
+ *     description: Elimina el usuario identificado por su ID. Requiere autenticación.
  *     tags: [Usuarios]
+ *     security:
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -174,10 +236,12 @@ router.put('/:id', actualizarUsuario);
  *     responses:
  *       200:
  *         description: Usuario eliminado satisfactoriamente.
+ *       401:
+ *         description: No autenticado.
  *       404:
  *         description: Usuario no encontrado.
  */
-router.delete('/:id', eliminarUsuario);
+router.delete('/:id', requireAuth, eliminarUsuario); // Proteger esta ruta con requireAuth
 
 /**
  * @swagger
@@ -264,5 +328,18 @@ router.get('/google', googleAuth);
  *         description: Redirección al frontend con token.
  */
 router.get('/google/callback', googleCallback);
+
+/**
+ * @swagger
+ * /usuarios/google/failure:
+ *   get:
+ *     summary: Manejador de fallo de autenticación con Google
+ *     description: Endpoint al que Google redirige en caso de fallo de autenticación. Redirige al frontend con un mensaje de error.
+ *     tags: [Usuarios]
+ *     responses:
+ *       302:
+ *         description: Redirección al frontend con error.
+ */
+router.get('/google/failure', googleAuthFailureHandler); // Nueva ruta para fallo de Google
 
 module.exports = router;

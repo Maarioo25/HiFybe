@@ -61,7 +61,10 @@ const AuthForm = () => {
       return { isValid: false, error: 'La contraseña debe tener un máximo de 12 carácteres' };
     }
 
-    // Validar coincidencia de contraseñas
+    if (!registerData.confirmPassword.trim()) {
+      return { isValid: false, error: 'Debes confirmar tu contraseña' };
+    }    
+
     if (registerData.password !== registerData.confirmPassword) {
       const confirmInput = form.querySelector('input[type="password"][placeholder="Repetir contraseña"]');
       confirmInput.classList.add('invalid');

@@ -79,8 +79,17 @@ export const userService = {
   register: async (userData) => {
     const response = await api.post('/usuarios/register', userData);
     return response.data;
+  },
+  getCurrentUser: async () => {
+    const response = await api.get('/usuarios/me');
+    return response.data;
+  },
+  logout: async () => {
+    const response = await api.post('/usuarios/logout');
+    return response.data;
   }
 };
+
 
 // Servicios de notificaciones
 export const notificationService = {

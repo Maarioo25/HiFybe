@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { authService } from '../services/appwrite';
-import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
+import { userService } from '../services/api';
 
 const AuthContext = createContext();
 
@@ -16,8 +16,8 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     try {
-      const currentUser = await authService.getCurrentUser();
-      setUser(currentUser);
+      const data = await userService.getCurrentUser();
+      setUser(data.user);
     } catch (error) {
       setUser(null);
     } finally {
@@ -25,21 +25,15 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (credentials) => {
+  const login = async ({ email, password }) => {
     try {
       setLoading(true);
-      await authService.login(credentials.email, credentials.password);
-      const currentUser = await authService.getCurrentUser();
-      setUser(currentUser);
+      const data = await userService.login(email, password);
+      if (data.usuario) setUser(data.usuario);
       toast.success('¡Inicio de sesión exitoso!');
       navigate('/');
     } catch (error) {
-      console.error('Error de login:', error);
-      if (error.code === 401) {
-        toast.error('Credenciales incorrectas');
-      } else {
-        toast.error('Error al iniciar sesión: ' + error.message);
-      }
+      toast.error(error.response?.data?.mensaje || 'Error al iniciar sesión');
       throw error;
     } finally {
       setLoading(false);
@@ -49,35 +43,11 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       setLoading(true);
-      // Llama al backend para registrar el usuario
-      const { userService } = await import('../services/api');
       await userService.register(userData);
-      // Iniciar sesión automáticamente
-      await authService.login(userData.email, userData.password);
-      // Obtener el usuario actual
-      const currentUser = await authService.getCurrentUser();
-      setUser(currentUser);
       toast.success('¡Registro exitoso!');
-      navigate('/');
+      await login({ email: userData.email, password: userData.password });
     } catch (error) {
-      console.error('Error de registro:', error);
-      // Mejorar el mensaje de error para mostrar el mensaje del backend si existe
-      const mensaje = error?.response?.data?.mensaje || error?.message || 'Error desconocido en el registro';
-      toast.error('Error en el registro: ' + mensaje);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const googleLogin = async () => {
-    try {
-      setLoading(true);
-      await authService.loginWithGoogle();
-      // La redirección la maneja Appwrite
-    } catch (error) {
-      console.error('Error de login con Google:', error);
-      toast.error('Error al iniciar sesión con Google');
+      toast.error(error.response?.data?.mensaje || 'Error en el registro');
       throw error;
     } finally {
       setLoading(false);
@@ -87,16 +57,20 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       setLoading(true);
-      await authService.logout();
+      await userService.logout();
       setUser(null);
       toast.success('¡Sesión cerrada!');
       navigate('/auth');
     } catch (error) {
-      console.error('Error de logout:', error);
-      toast.error('Error al cerrar sesión');
+      toast.error(error.response?.data?.mensaje || 'Error al cerrar sesión');
     } finally {
       setLoading(false);
     }
+  };
+
+  const googleLogin = () => {
+    setLoading(true);
+    window.location.href = 'http://localhost:5000/usuarios/google';
   };
 
   const value = {
@@ -105,7 +79,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
-    googleLogin
+    googleLogin,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -117,4 +91,4 @@ export const useAuth = () => {
     throw new Error('useAuth debe ser usado dentro de un AuthProvider');
   }
   return context;
-}; 
+};

@@ -1,19 +1,13 @@
-// controllers/authController.js
 const Usuario = require('../models/usuario');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
-const { OAuth2Client } = require('google-auth-library');
+const passport = require('passport');
 
-// Configura cliente OAuth2 de Google
-const googleClient = new OAuth2Client(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  `${process.env.API_URL}/auth/google/callback`
-);
+// ===================== HELPERS ===================== //
 
-// Helpers
 const limpiarUsuario = (usuario) => {
+  if (!usuario || !usuario._doc) return usuario;
   const {
     password,
     contrasena_reset_token,
@@ -24,7 +18,21 @@ const limpiarUsuario = (usuario) => {
   return resto;
 };
 
-// Registro manual
+const emitirTokenYCookie = (usuario, res) => {
+  const token = jwt.sign({ id: usuario._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000
+  });
+
+  return token;
+};
+
+// ===================== REGISTRO ===================== //
+
 exports.registrarUsuario = async (req, res) => {
   try {
     const { nombre, apellidos, email, password } = req.body;
@@ -34,14 +42,18 @@ exports.registrarUsuario = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const usuario = await Usuario.create({ nombre, apellidos, email, password: hashedPassword });
 
-    const token = jwt.sign({ id: usuario._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.status(201).json({ mensaje: 'Usuario registrado exitosamente.', usuario: limpiarUsuario(usuario), token });
+    res.status(201).json({
+      mensaje: 'Usuario registrado exitosamente.',
+      usuario: limpiarUsuario(usuario)
+    });
   } catch (err) {
+    console.error('Error en registrarUsuario:', err);
     res.status(500).json({ mensaje: 'Error al registrar usuario.' });
   }
 };
 
-// Login manual
+// ===================== LOGIN ===================== //
+
 exports.loginUsuario = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -51,132 +63,169 @@ exports.loginUsuario = async (req, res) => {
     const valido = await bcrypt.compare(password, usuario.password);
     if (!valido) return res.status(400).json({ mensaje: 'Credenciales inválidas.' });
 
-    const token = jwt.sign({ id: usuario._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días
-    });
+    usuario.ultima_conexion = Date.now();
+    await usuario.save();
 
-    res.json({ mensaje: 'Login exitoso.', usuario: limpiarUsuario(usuario), token });
+    emitirTokenYCookie(usuario, res);
+
+    res.json({
+      mensaje: 'Login exitoso.',
+      usuario: limpiarUsuario(usuario)
+    });
   } catch (err) {
+    console.error('Error en loginUsuario:', err);
     res.status(500).json({ mensaje: 'Error al iniciar sesión.' });
   }
 };
 
-// Obtener todos los usuarios
-exports.obtenerUsuarios = async (_req, res) => {
-  const usuarios = await Usuario.find();
-  res.json(usuarios.map(u => limpiarUsuario(u)));
-};
+// ===================== AUTENTICACIÓN ACTUAL ===================== //
 
-// Obtener usuario por ID
-exports.obtenerUsuarioPorId = async (req, res) => {
-  const { id } = req.params;
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ mensaje: 'ID inválido.' });
+exports.getCurrentUser = (req, res) => {
+  if (req.user) {
+    res.json({ user: limpiarUsuario(req.user) });
+  } else {
+    res.status(401).json({ mensaje: 'No autenticado' });
   }
-  const usuario = await Usuario.findById(id);
-  if (!usuario) return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
-  res.json(limpiarUsuario(usuario));
 };
 
-// Actualizar usuario
+// ===================== CRUD USUARIOS ===================== //
+
+exports.obtenerUsuarios = async (req, res) => {
+  try {
+    const usuarios = await Usuario.find();
+    res.json(usuarios.map(u => limpiarUsuario(u)));
+  } catch (err) {
+    console.error('Error en obtenerUsuarios:', err);
+    res.status(500).json({ mensaje: 'Error al obtener usuarios.' });
+  }
+};
+
+exports.obtenerUsuarioPorId = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ mensaje: 'ID inválido.' });
+    }
+
+    const usuario = await Usuario.findById(id);
+    if (!usuario) return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
+
+    res.json(limpiarUsuario(usuario));
+  } catch (err) {
+    console.error('Error en obtenerUsuarioPorId:', err);
+    res.status(500).json({ mensaje: 'Error al obtener usuario.' });
+  }
+};
+
 exports.actualizarUsuario = async (req, res) => {
   try {
-    if (req.body.password) {
-      req.body.password = await bcrypt.hash(req.body.password, 10);
+    const camposPermitidos = ['nombre', 'apellidos', 'biografia', 'foto_perfil', 'password'];
+    const actualizaciones = {};
+
+    for (const campo of camposPermitidos) {
+      if (req.body[campo] !== undefined) {
+        actualizaciones[campo] = req.body[campo];
+      }
     }
-    const usuario = await Usuario.findByIdAndUpdate(req.params.id, req.body, { new: true });
+
+    if (actualizaciones.password) {
+      actualizaciones.password = await bcrypt.hash(actualizaciones.password, 10);
+    }
+
+    const usuario = await Usuario.findByIdAndUpdate(req.params.id, actualizaciones, { new: true });
     if (!usuario) return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
+
     res.json({ mensaje: 'Usuario actualizado.', usuario: limpiarUsuario(usuario) });
   } catch (err) {
+    console.error('Error en actualizarUsuario:', err);
     res.status(500).json({ mensaje: 'Error al actualizar usuario.' });
   }
 };
 
-// Eliminar usuario
 exports.eliminarUsuario = async (req, res) => {
-  const usuario = await Usuario.findByIdAndDelete(req.params.id);
-  if (!usuario) return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
-  res.json({ mensaje: 'Usuario eliminado.' });
-};
-
-// Solicitar reset de contraseña
-exports.solicitarResetContrasena = async (req, res) => {
-  const { email } = req.body;
-  const usuario = await Usuario.findOne({ email });
-  if (!usuario) return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
-
-  const resetToken = jwt.sign({ id: usuario._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-  usuario.contrasena_reset_token = resetToken;
-  usuario.contrasena_reset_expiracion = Date.now() + 3600000;
-  await usuario.save();
-
-  res.json({ mensaje: 'Token de reseteo generado.' });
-};
-
-// Resetear contraseña
-exports.resetearContrasena = async (req, res) => {
-  const { token } = req.params;
-  const usuario = await Usuario.findOne({
-    contrasena_reset_token: token,
-    contrasena_reset_expiracion: { $gt: Date.now() }
-  });
-  if (!usuario) return res.status(400).json({ mensaje: 'Token inválido o expirado.' });
-
-  usuario.password = await bcrypt.hash(req.body.nuevaContrasena, 10);
-  usuario.contrasena_reset_token = null;
-  usuario.contrasena_reset_expiracion = null;
-  await usuario.save();
-
-  res.json({ mensaje: 'Contraseña actualizada exitosamente.' });
-};
-
-// Iniciar OAuth con Google
-exports.googleAuth = (_req, res) => {
-  const url = googleClient.generateAuthUrl({
-    access_type: 'offline',
-    scope: ['profile', 'email']
-  });
-  res.redirect(url);
-};
-
-// Callback de Google
-exports.googleCallback = async (req, res) => {
   try {
-    const { code } = req.query;
-    const { tokens } = await googleClient.getToken(code);
-    googleClient.setCredentials(tokens);
-
-    const ticket = await googleClient.verifyIdToken({
-      idToken: tokens.id_token,
-      audience: process.env.GOOGLE_CLIENT_ID
-    });
-    const payload = ticket.getPayload();
-
-    let usuario = await Usuario.findOne({ googleId: payload.sub });
-    if (!usuario) usuario = await Usuario.findOne({ email: payload.email });
-
-    if (!usuario) {
-      const [nombre, ...apellidosArr] = payload.name.split(' ');
-      usuario = await Usuario.create({
-        nombre:      nombre,
-        apellidos:   apellidosArr.join(' '),
-        email:       payload.email,
-        password:    await bcrypt.hash(Math.random().toString(36), 10),
-        googleId:    payload.sub,
-        foto_perfil: payload.picture
-      });
-    } else if (!usuario.googleId) {
-      usuario.googleId = payload.sub;
-      await usuario.save();
-    }
-
-    const token = jwt.sign({ id: usuario._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.redirect(`${process.env.FRONTEND_URL}/dashboard?token=${token}`);
+    const usuario = await Usuario.findByIdAndDelete(req.params.id);
+    if (!usuario) return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
+    res.json({ mensaje: 'Usuario eliminado.' });
   } catch (err) {
-    res.status(500).json({ error: 'Error en autenticación con Google' });
+    console.error('Error en eliminarUsuario:', err);
+    res.status(500).json({ mensaje: 'Error al eliminar usuario.' });
   }
+};
+
+// ===================== CONTRASEÑA ===================== //
+
+exports.solicitarResetContrasena = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const usuario = await Usuario.findOne({ email });
+    if (!usuario) return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
+
+    const resetToken = jwt.sign({ id: usuario._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    usuario.contrasena_reset_token = resetToken;
+    usuario.contrasena_reset_expiracion = Date.now() + 3600000;
+    await usuario.save();
+
+    res.json({ mensaje: 'Token de reseteo generado.' });
+  } catch (err) {
+    console.error('Error en solicitarResetContrasena:', err);
+    res.status(500).json({ mensaje: 'Error al solicitar reseteo de contraseña.' });
+  }
+};
+
+exports.resetearContrasena = async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    const usuario = await Usuario.findOne({
+      contrasena_reset_token: token,
+      contrasena_reset_expiracion: { $gt: Date.now() }
+    });
+
+    if (!usuario) return res.status(400).json({ mensaje: 'Token inválido o expirado.' });
+
+    usuario.password = await bcrypt.hash(req.body.nuevaContrasena, 10);
+    usuario.contrasena_reset_token = null;
+    usuario.contrasena_reset_expiracion = null;
+
+    await usuario.save();
+
+    res.json({ mensaje: 'Contraseña actualizada exitosamente.' });
+  } catch (err) {
+    console.error('Error en resetearContrasena:', err);
+    res.status(500).json({ mensaje: 'Error al resetear contraseña.' });
+  }
+};
+
+// ===================== GOOGLE OAUTH ===================== //
+
+exports.googleAuth = passport.authenticate('google', { scope: ['profile', 'email'] });
+
+exports.googleCallback = async (req, res) => {
+  if (req.user) {
+    try {
+      req.user.ultima_conexion = Date.now();
+      await req.user.save();
+
+      emitirTokenYCookie(req.user, res);
+      res.redirect(`${process.env.FRONTEND_URL}`);
+    } catch (err) {
+      console.error('Error en googleCallback:', err);
+      res.redirect(`${process.env.FRONTEND_URL}/login?error=server_error`);
+    }
+  } else {
+    res.redirect(`${process.env.FRONTEND_URL}/login?error=google_auth_failed`);
+  }
+};
+
+exports.googleAuthFailureHandler = (req, res) => {
+  console.error('Autenticación con Google fallida.', req.query.message);
+  res.redirect(`${process.env.FRONTEND_URL}/login?error=google_auth_failed`);
+};
+
+// ===================== LOGOUT ===================== //
+
+exports.logoutUser = (req, res) => {
+  res.clearCookie('token');
+  res.json({ mensaje: 'Sesión cerrada exitosamente' });
 };

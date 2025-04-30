@@ -5,12 +5,13 @@ const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
 const cookieParser = require('cookie-parser');
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
 dotenv.config();
 
 const app = express();
 
-app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
   origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
@@ -18,6 +19,48 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+// Inicialización de Passport
+app.use(passport.initialize());
+
+// Configuración de la estrategia de Google para Passport
+passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: "/usuarios/google/callback", // Ruta de callback en tu backend
+    scope: ['profile', 'email'] // Información que solicitas a Google
+  },
+  async (accessToken, refreshToken, profile, done) => {
+    // Esta función se llama cuando Google responde
+    try {
+        const User = require('./src/models/usuario'); // Asegúrate de la ruta correcta
+
+        // Buscar usuario por email (Google ID también es una opción)
+        let user = await User.findOne({ email: profile.emails[0].value });
+
+        if (user) {
+            // Usuario existente, autenticarlo
+            done(null, user);
+        } else {
+            // Nuevo usuario, crearlo en la base de datos
+            const newUser = new User({
+                googleId: profile.id,
+                nombre: profile.name.givenName,
+                apellidos: profile.name.familyName || '',
+                email: profile.emails[0].value,
+                foto_perfil: profile.photos?.[0]?.value || '',
+                foto_perfil: profile.photos[0].value,
+                password: await bcrypt.hash(Math.random().toString(36), 10)
+            });
+            const savedUser = await newUser.save();
+            done(null, savedUser);
+        }
+    } catch (err) {
+        done(err, null);
+    }
+  }
+));
+
 
 const swaggerOptions = {
   swaggerDefinition: {
