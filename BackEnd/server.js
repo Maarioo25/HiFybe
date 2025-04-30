@@ -102,12 +102,6 @@ const swaggerOptions = {
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
-// Ruta de prueba protegida
-const requireAuth = require('./src/middleware/auth');
-app.get('/', requireAuth, (req, res) => {
-  res.send('La API Funciona');
-});
-
 // Rutas
 app.use('/usuarios', require('./src/routes/usuariosRoutes'));
 app.use('/canciones', require('./src/routes/cancionesRoutes'));

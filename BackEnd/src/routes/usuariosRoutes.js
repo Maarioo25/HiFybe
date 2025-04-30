@@ -1,11 +1,12 @@
 // routes/usuarios.js
 const express = require('express');
-const router = express.Router();
 const passport = require('passport');
+const requireAuth = require('../middleware/auth');
 
+const router = express.Router();
 
 // Middleware de autenticación - Asegúrate de que verifica la sesión de Passport
-const requireAuth = require('../middleware/auth');
+
 
 // Controladores de usuario y autenticación
 const {
@@ -331,7 +332,7 @@ router.get('/google', googleAuth);
  */
 router.get(
   '/google/callback',
-  passport.authenticate('google', { failureRedirect: '/usuarios/google/failure', session: true }),
+  passport.authenticate('google', { failureRedirect: '/usuarios/google/failure', session: false }),
   googleCallback
 );
 
