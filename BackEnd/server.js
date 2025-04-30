@@ -15,6 +15,8 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
 
 const app = express();
+app.use(express.json());
+
 
 app.use(cookieParser());
 app.use(cors({
