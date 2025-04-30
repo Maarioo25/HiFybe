@@ -1,6 +1,10 @@
+const dotenv = require('dotenv');
+dotenv.config();
+console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID);
+
+
 const express = require('express');
 const mongoose = require('mongoose');
-const dotenv = require('dotenv');
 const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
@@ -8,7 +12,7 @@ const cookieParser = require('cookie-parser');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
-dotenv.config();
+
 
 const app = express();
 
@@ -49,7 +53,6 @@ passport.use(new GoogleStrategy({
                 apellidos: profile.name.familyName || '',
                 email: profile.emails[0].value,
                 foto_perfil: profile.photos?.[0]?.value || '',
-                foto_perfil: profile.photos[0].value,
                 password: await bcrypt.hash(Math.random().toString(36), 10)
             });
             const savedUser = await newUser.save();
