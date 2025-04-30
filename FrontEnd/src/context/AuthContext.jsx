@@ -69,7 +69,6 @@ export const AuthProvider = ({ children }) => {
   };
 
   const googleLogin = () => {
-    setLoading(true);
     window.location.href = 'http://localhost:5000/usuarios/google';
   };
 

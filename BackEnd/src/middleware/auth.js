@@ -2,33 +2,25 @@
 const jwt = require('jsonwebtoken');
 const Usuario = require('../models/usuario');
 
-const requireAuth = async (req, res, next) => {
+module.exports = async function requireAuth(req, res, next) {
+  const token = req.cookies.token;
+
+  if (!token) {
+    return res.status(401).json({ mensaje: 'No autenticado. Token no encontrado.' });
+  }
+
   try {
-    // Leer el token de la cookie
-    const token = req.cookies.token;
-
-    if (!token) {
-      return res.status(401).json({ mensaje: 'No autenticado. Token no encontrado.' });
-    }
-
-    // Verificar el token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await Usuario.findById(decoded.id);
 
-    // Buscar al usuario por ID decodificado
-    const usuario = await Usuario.findById(decoded.id);
-    if (!usuario) {
-      return res.status(401).json({ mensaje: 'Usuario no válido.' });
+    if (!user) {
+      return res.status(401).json({ mensaje: 'Usuario no encontrado.' });
     }
 
-    // Agregar usuario a la request
-    req.user = usuario;
-
-    // Continuar con la siguiente función
+    req.user = user;
     next();
   } catch (err) {
     console.error('Error en requireAuth:', err);
-    return res.status(401).json({ mensaje: 'Autenticación inválida.' });
+    return res.status(401).json({ mensaje: 'Token inválido o expirado.' });
   }
 };
-
-module.exports = requireAuth;

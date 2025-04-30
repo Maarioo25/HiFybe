@@ -203,7 +203,7 @@ exports.googleAuth = passport.authenticate('google', { scope: ['profile', 'email
 
 exports.googleCallback = async (req, res) => {
   if (req.user) {
-    try {
+    try { 
       req.user.ultima_conexion = Date.now();
       await req.user.save();
 

@@ -18,7 +18,6 @@ api.interceptors.response.use(
     // Manejar errores 401 (No autorizado)
     if (error.response?.status === 401) {
       document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-      window.location.href = '/auth';
       return Promise.reject({
         response: {
           data: {
