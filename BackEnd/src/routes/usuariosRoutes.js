@@ -173,7 +173,7 @@ router.get('/:id', requireAuth, obtenerUsuarioPorId); // Proteger esta ruta con 
 /**
  * @swagger
  * /usuarios/{id}:
- *   put:\
+ *   put:
  *     summary: Actualización de datos de usuario
  *     description: Actualiza la información de un usuario existente identificándolo por su ID. Requiere autenticación.
  *     tags: [Usuarios]
