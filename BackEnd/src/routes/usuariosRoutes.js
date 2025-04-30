@@ -1,6 +1,8 @@
 // routes/usuarios.js
 const express = require('express');
 const router = express.Router();
+const passport = require('passport');
+
 
 // Middleware de autenticación - Asegúrate de que verifica la sesión de Passport
 const requireAuth = require('../middleware/auth');
