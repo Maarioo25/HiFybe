@@ -327,7 +327,7 @@ router.get('/google', googleAuth);
  *       302:
  *         description: Redirección al frontend con token.
  */
-router.get('/google/callback', googleCallback);
+router.get('/google/callback', passport.authenticate('google', { failureRedirect: '/usuarios/google/failure' }), googleCallback);
 
 /**
  * @swagger
