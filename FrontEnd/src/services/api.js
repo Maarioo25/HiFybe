@@ -1,20 +1,14 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:5000',
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  baseURL: 'http://127.0.0.1:5000',
+  headers: { 'Content-Type': 'application/json' },
   withCredentials: true
 });
 
-// Interceptor para manejar respuestas
 api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  (error) => {
-    // Manejar errores 401 (No autorizado)
+  response => response,
+  error => {
     if (error.response?.status === 401) {
       document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
       return Promise.reject({
@@ -25,9 +19,7 @@ api.interceptors.response.use(
         }
       });
     }
-    // Manejar errores 500 (Error del servidor)
     if (error.response?.status === 500) {
-      console.error('Error del servidor:', error.response?.data);
       return Promise.reject({
         response: {
           data: {
@@ -36,7 +28,6 @@ api.interceptors.response.use(
         }
       });
     }
-    // Para otros errores, devolver el mensaje del servidor si existe
     return Promise.reject({
       response: {
         data: {
@@ -47,93 +38,88 @@ api.interceptors.response.use(
   }
 );
 
-// Servicios de usuario
 export const userService = {
   getAllUsers: async () => {
-    const response = await api.get('/usuarios');
-    return response.data;
+    const res = await api.get('/usuarios');
+    return res.data;
   },
-  getUserById: async (userId) => {
-    const response = await api.get(`/usuarios/${userId}`);
-    return response.data;
+  getUserById: async id => {
+    const res = await api.get(`/usuarios/${id}`);
+    return res.data;
   },
-  updateProfile: async (userId, userData) => {
-    const response = await api.put(`/usuarios/${userId}`, {
-      nombre: userData.nombre,
-      apodo: userData.apodo,
-      biografia: userData.biografia,
-      foto_perfil: userData.foto_perfil
+  updateProfile: async (id, data) => {
+    const res = await api.put(`/usuarios/${id}`, {
+      nombre: data.nombre,
+      apodo: data.apodo,
+      biografia: data.biografia,
+      foto_perfil: data.foto_perfil
     });
-    return response.data;
+    return res.data;
   },
-  deleteUser: async (userId) => {
-    const response = await api.delete(`/usuarios/${userId}`);
-    return response.data;
+  deleteUser: async id => {
+    const res = await api.delete(`/usuarios/${id}`);
+    return res.data;
   },
   login: async (email, password) => {
-    const response = await api.post('/usuarios/login', { email, password });
-    return response.data;
+    const res = await api.post('/usuarios/login', { email, password });
+    return res.data;
   },
-  register: async (userData) => {
-    const response = await api.post('/usuarios/register', userData);
-    return response.data;
+  register: async data => {
+    const res = await api.post('/usuarios/register', data);
+    return res.data;
   },
   getCurrentUser: async () => {
-    const response = await api.get('/usuarios/me');
-    return response.data;
+    const res = await api.get('/usuarios/me');
+    return res.data;
   },
   logout: async () => {
-    const response = await api.post('/usuarios/logout');
-    return response.data;
+    const res = await api.post('/usuarios/logout');
+    return res.data;
   }
 };
 
-
-// Servicios de notificaciones
 export const notificationService = {
   getNotifications: async () => {
-    const response = await api.get('/notificaciones');
-    return response.data;
+    const res = await api.get('/notificaciones');
+    return res.data;
   },
-  markAsRead: async (notificationId) => {
-    const response = await api.put(`/notificaciones/${notificationId}/leida`);
-    return response.data;
+  markAsRead: async id => {
+    const res = await api.put(`/notificaciones/${id}/leida`);
+    return res.data;
   }
 };
 
-// Servicios de chat
 export const chatService = {
   getConversations: async () => {
-    const response = await api.get('/conversaciones');
-    return response.data;
+    const res = await api.get('/conversaciones');
+    return res.data;
   },
-  getMessages: async (conversationId) => {
-    const response = await api.get(`/conversaciones/${conversationId}/mensajes`);
-    return response.data;
+  getMessages: async cid => {
+    const res = await api.get(`/conversaciones/${cid}/mensajes`);
+    return res.data;
   },
-  sendMessage: async (conversationId, message) => {
-    const response = await api.post(`/conversaciones/${conversationId}/mensajes`, { message });
-    return response.data;
+  sendMessage: async (cid, message) => {
+    const res = await api.post(`/conversaciones/${cid}/mensajes`, { message });
+    return res.data;
   }
 };
 
-// Servicios de música
 export const musicService = {
-  getSongs: async (filters) => {
-    const response = await api.get('/canciones', { params: filters });
-    return response.data;
+  getSongs: async filters => {
+    const res = await api.get('/canciones', { params: filters });
+    return res.data;
   },
   getPlaylists: async () => {
-    const response = await api.get('/playlists');
-    return response.data;
+    const res = await api.get('/playlists');
+    return res.data;
   },
-  createPlaylist: async (playlistData) => {
-    const response = await api.post('/playlists', playlistData);
-    return response.data;
+  createPlaylist: async data => {
+    const res = await api.post('/playlists', data);
+    return res.data;
   },
-  addSongToPlaylist: async (playlistId, songId) => {
-    const response = await api.post(`/playlists/${playlistId}/canciones`, { songId });
-    return response.data;
+  addSongToPlaylist: async (pid, sid) => {
+    const res = await api.post(`/playlists/${pid}/canciones`, { songId: sid });
+    return res.data;
   }
 };
 

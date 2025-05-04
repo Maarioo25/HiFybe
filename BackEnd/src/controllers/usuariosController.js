@@ -20,14 +20,12 @@ const limpiarUsuario = (usuario) => {
 
 const emitirTokenYCookie = (usuario, res) => {
   const token = jwt.sign({ id: usuario._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-
   res.cookie('token', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'development', 
-    sameSite: 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000
+    sameSite: 'none',
+    secure: true,
+    maxAge: 7 * 24 * 60 * 60 * 1000 //<-- Días / Horas / Minutos / Segundos / Milisegundos
   });
-
   return token;
 };
 
@@ -36,8 +34,22 @@ const emitirTokenYCookie = (usuario, res) => {
 exports.registrarUsuario = async (req, res) => {
   try {
     const { nombre, apellidos, email, password } = req.body;
-    const usuarioExiste = await Usuario.findOne({ email });
-    if (usuarioExiste) return res.status(400).json({ mensaje: 'Email ya registrado.' });
+    const usuarioExistePorCorreo = await Usuario.findOne({ email });
+    const usuarioEstaRegistradoConGoogle = await Usuario.findOne({ email , auth_proveedor: 'google' })
+    const usuarioEstaRegistradoConSpotify = await Usuario.findOne({ email , auth_proveedor: 'spotify' })
+    const usuarioEstaRegistradoConApple = await Usuario.findOne({ email , auth_proveedor: 'apple' })
+
+    if (usuarioEstaRegistradoConGoogle)
+      return res.status(403).json({ mensaje: 'Inicia sesión a través de Google.' });
+
+    if (usuarioEstaRegistradoConApple)
+      return res.status(403).json({ mensaje: 'Inicia sesión a través de Apple.' });
+
+    if (usuarioEstaRegistradoConSpotify)
+      return res.status(403).json({ mensaje: 'Inicia sesión a través de Spotify.' });
+
+    if (usuarioExistePorCorreo) 
+      return res.status(403).json({ mensaje: 'Esta dirección de correo ya esta registrada, Inicia sesión.' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const usuario = await Usuario.create({ nombre, apellidos, email, password: hashedPassword });
@@ -47,7 +59,6 @@ exports.registrarUsuario = async (req, res) => {
       usuario: limpiarUsuario(usuario)
     });
   } catch (err) {
-    console.error('Error en registrarUsuario:', err);
     res.status(500).json({ mensaje: 'Error al registrar usuario.' });
   }
 };
@@ -58,10 +69,13 @@ exports.loginUsuario = async (req, res) => {
   try {
     const { email, password } = req.body;
     const usuario = await Usuario.findOne({ email });
-    if (!usuario) return res.status(400).json({ mensaje: 'Credenciales inválidas.' });
+
+    if (!usuario)
+      return res.status(400).json({ mensaje: 'El usuario o la contraseña no coinciden.'});
 
     const valido = await bcrypt.compare(password, usuario.password);
-    if (!valido) return res.status(400).json({ mensaje: 'Credenciales inválidas.' });
+    if (!valido)
+      return res.status(400).json({ mensaje: 'El usuario o la contraseña no coinciden.'});
 
     usuario.ultima_conexion = Date.now();
     await usuario.save();
@@ -73,7 +87,6 @@ exports.loginUsuario = async (req, res) => {
       usuario: limpiarUsuario(usuario)
     });
   } catch (err) {
-    console.error('Error en loginUsuario:', err);
     res.status(500).json({ mensaje: 'Error al iniciar sesión.' });
   }
 };
@@ -82,9 +95,17 @@ exports.loginUsuario = async (req, res) => {
 
 exports.getCurrentUser = (req, res) => {
   if (req.user) {
-    res.json({ user: limpiarUsuario(req.user) });
+    const usuarioLimpio = {
+      _id: req.user._id,
+      nombre: req.user.nombre,
+      apellidos: req.user.apellidos,
+      email: req.user.email,
+      foto_perfil: req.user.foto_perfil,
+      auth_proveedor: req.user.auth_proveedor
+    };
+    return res.json({ user: usuarioLimpio });
   } else {
-    res.status(401).json({ mensaje: 'No autenticado' });
+    return res.status(401).json({ mensaje: 'No autenticado' });
   }
 };
 
@@ -95,7 +116,6 @@ exports.obtenerUsuarios = async (req, res) => {
     const usuarios = await Usuario.find();
     res.json(usuarios.map(u => limpiarUsuario(u)));
   } catch (err) {
-    console.error('Error en obtenerUsuarios:', err);
     res.status(500).json({ mensaje: 'Error al obtener usuarios.' });
   }
 };
@@ -106,13 +126,10 @@ exports.obtenerUsuarioPorId = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ mensaje: 'ID inválido.' });
     }
-
     const usuario = await Usuario.findById(id);
     if (!usuario) return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
-
     res.json(limpiarUsuario(usuario));
   } catch (err) {
-    console.error('Error en obtenerUsuarioPorId:', err);
     res.status(500).json({ mensaje: 'Error al obtener usuario.' });
   }
 };
@@ -121,23 +138,18 @@ exports.actualizarUsuario = async (req, res) => {
   try {
     const camposPermitidos = ['nombre', 'apellidos', 'biografia', 'foto_perfil', 'password'];
     const actualizaciones = {};
-
     for (const campo of camposPermitidos) {
       if (req.body[campo] !== undefined) {
         actualizaciones[campo] = req.body[campo];
       }
     }
-
     if (actualizaciones.password) {
       actualizaciones.password = await bcrypt.hash(actualizaciones.password, 10);
     }
-
     const usuario = await Usuario.findByIdAndUpdate(req.params.id, actualizaciones, { new: true });
     if (!usuario) return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
-
     res.json({ mensaje: 'Usuario actualizado.', usuario: limpiarUsuario(usuario) });
   } catch (err) {
-    console.error('Error en actualizarUsuario:', err);
     res.status(500).json({ mensaje: 'Error al actualizar usuario.' });
   }
 };
@@ -148,52 +160,7 @@ exports.eliminarUsuario = async (req, res) => {
     if (!usuario) return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
     res.json({ mensaje: 'Usuario eliminado.' });
   } catch (err) {
-    console.error('Error en eliminarUsuario:', err);
     res.status(500).json({ mensaje: 'Error al eliminar usuario.' });
-  }
-};
-
-// ===================== CONTRASEÑA ===================== //
-
-exports.solicitarResetContrasena = async (req, res) => {
-  try {
-    const { email } = req.body;
-    const usuario = await Usuario.findOne({ email });
-    if (!usuario) return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
-
-    const resetToken = jwt.sign({ id: usuario._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    usuario.contrasena_reset_token = resetToken;
-    usuario.contrasena_reset_expiracion = Date.now() + 3600000;
-    await usuario.save();
-
-    res.json({ mensaje: 'Token de reseteo generado.' });
-  } catch (err) {
-    console.error('Error en solicitarResetContrasena:', err);
-    res.status(500).json({ mensaje: 'Error al solicitar reseteo de contraseña.' });
-  }
-};
-
-exports.resetearContrasena = async (req, res) => {
-  try {
-    const { token } = req.params;
-
-    const usuario = await Usuario.findOne({
-      contrasena_reset_token: token,
-      contrasena_reset_expiracion: { $gt: Date.now() }
-    });
-
-    if (!usuario) return res.status(400).json({ mensaje: 'Token inválido o expirado.' });
-
-    usuario.password = await bcrypt.hash(req.body.nuevaContrasena, 10);
-    usuario.contrasena_reset_token = null;
-    usuario.contrasena_reset_expiracion = null;
-
-    await usuario.save();
-
-    res.json({ mensaje: 'Contraseña actualizada exitosamente.' });
-  } catch (err) {
-    console.error('Error en resetearContrasena:', err);
-    res.status(500).json({ mensaje: 'Error al resetear contraseña.' });
   }
 };
 
@@ -203,14 +170,12 @@ exports.googleAuth = passport.authenticate('google', { scope: ['profile', 'email
 
 exports.googleCallback = async (req, res) => {
   if (req.user) {
-    try { 
+    try {
       req.user.ultima_conexion = Date.now();
       await req.user.save();
-
       emitirTokenYCookie(req.user, res);
       res.redirect(`${process.env.FRONTEND_URL}`);
     } catch (err) {
-      console.error('Error en googleCallback:', err);
       res.redirect(`${process.env.FRONTEND_URL}/login?error=server_error`);
     }
   } else {
@@ -219,13 +184,43 @@ exports.googleCallback = async (req, res) => {
 };
 
 exports.googleAuthFailureHandler = (req, res) => {
-  console.error('Autenticación con Google fallida.', req.query.message);
   res.redirect(`${process.env.FRONTEND_URL}/login?error=google_auth_failed`);
+};
+
+// ===================== SPOTIFY OAUTH ===================== //
+
+exports.spotifyAuth = passport.authenticate('spotify', { scope: ['user-read-email','user-read-private'], showDialog: true });
+
+exports.spotifyCallback = async (req, res) => {
+  if (!req.user) {
+    return res.redirect(`${process.env.FRONTEND_URL}/login?error=spotify_auth_failed`);
+  }
+  try {
+    // Actualiza última conexión, emite cookie+token
+    req.user.ultima_conexion = Date.now();
+    await req.user.save();
+
+    emitirTokenYCookie(req.user, res);
+    res.redirect(process.env.FRONTEND_URL);
+  } catch (err) {
+    console.error('Error en spotifyCallback:', err);
+    res.redirect(`${process.env.FRONTEND_URL}/login?error=server_error`);
+  }
+};
+
+exports.spotifyAuthFailureHandler = (req, res) => {
+  console.error('Autenticación con Spotify fallida.', req.query.error);
+  res.redirect(`${process.env.FRONTEND_URL}/login?error=spotify_auth_failed`);
 };
 
 // ===================== LOGOUT ===================== //
 
 exports.logoutUser = (req, res) => {
-  res.clearCookie('token');
+  res.clearCookie('token', {
+    httpOnly: true,
+    sameSite: 'none',
+    secure: true
+  });
   res.json({ mensaje: 'Sesión cerrada exitosamente' });
 };
+

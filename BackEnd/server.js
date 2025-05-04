@@ -4,7 +4,8 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const { Strategy: GoogleStrategy } = require('passport-google-oauth20');
+const SpotifyStrategy = require('passport-spotify').Strategy;
 const bcrypt = require('bcryptjs');
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
@@ -13,6 +14,7 @@ dotenv.config();
 
 const app = express();
 
+app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
   origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
@@ -21,10 +23,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Inicialización de Passport
 app.use(passport.initialize());
 
-// Configurar estrategia de Google
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -32,16 +32,31 @@ passport.use(new GoogleStrategy({
 }, async (accessToken, refreshToken, profile, done) => {
   try {
     const User = require('./src/models/usuario');
-    const email = profile.emails[0].value;
+    const email = profile.emails?.[0]?.value;
+    if (!email) return done(new Error('No se encontró un email en el perfil de Google'), null);
 
     let user = await User.findOne({ email });
 
-    if (!user) {
+    if (user) {
+      if (!user.googleId) {
+        user.googleId = profile.id;
+      }
+
+      if (!user.nombre || user.nombre === 'Usuario') {
+        user.nombre = profile.name?.givenName || user.nombre;
+      }
+
+      if (!user.apellidos || user.apellidos === 'Desconocido') {
+        user.apellidos = profile.name?.familyName || user.apellidos;
+      }
+
+      await user.save();
+    } else {
       user = new User({
         googleId: profile.id,
-        nombre: profile.name.givenName,
-        apellidos: profile.name.familyName || '',
-        email: email,
+        nombre: profile.name?.givenName || 'Usuario',
+        apellidos: profile.name?.familyName || 'Desconocido',
+        email,
         foto_perfil: profile.photos?.[0]?.value || '',
         password: await bcrypt.hash(Math.random().toString(36), 10),
         auth_proveedor: 'google'
@@ -55,7 +70,57 @@ passport.use(new GoogleStrategy({
   }
 }));
 
-// Swagger
+
+passport.use(new SpotifyStrategy({
+  clientID: process.env.SPOTIFY_CLIENT_ID,
+  clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
+  callbackURL: process.env.SPOTIFY_CALLBACK_URL
+}, async (accessToken, refreshToken, profile, done) => {
+  try {
+    const User = require('./src/models/usuario');
+    const email = profile.emails?.[0]?.value;
+    if (!email) return done(new Error('No se encontró un email en el perfil de Spotify'), null);
+
+    let user = await User.findOne({ email });
+
+    const nameParts = profile.displayName?.split(' ') || ['Usuario'];
+    const nombreSpotify = nameParts[0] || 'Usuario';
+    const apellidosSpotify = nameParts.slice(1).join(' ') || 'Desconocido';
+
+    if (user) {
+      if (!user.spotifyId) {
+        user.spotifyId = profile.id;
+      }
+
+      if (!user.nombre || user.nombre === 'Usuario') {
+        user.nombre = nombreSpotify;
+      }
+
+      if (!user.apellidos || user.apellidos === 'Desconocido') {
+        user.apellidos = apellidosSpotify;
+      }
+
+      await user.save();
+    } else {
+      user = new User({
+        spotifyId: profile.id,
+        nombre: nombreSpotify,
+        apellidos: apellidosSpotify,
+        email,
+        foto_perfil: profile.photos?.[0] || '',
+        password: await bcrypt.hash(Math.random().toString(36), 10),
+        auth_proveedor: 'spotify'
+      });
+      await user.save();
+    }
+
+    done(null, user);
+  } catch (err) {
+    done(err, null);
+  }
+}));
+
+
 const swaggerOptions = {
   swaggerDefinition: {
     openapi: '3.0.0',
@@ -64,15 +129,13 @@ const swaggerOptions = {
       version: '1.0.0',
       description: 'Documentación de la API con Swagger'
     },
-    servers: [{ url: 'http://localhost:5000', description: 'API Local' }]
+    servers: [{ url: 'http://127.0.0.1:5000', description: 'API Local' }]
   },
   apis: ['./src/routes/*.js']
 };
-
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
-// Rutas
 app.use('/usuarios', require('./src/routes/usuariosRoutes'));
 app.use('/canciones', require('./src/routes/cancionesRoutes'));
 app.use('/playlists', require('./src/routes/playlistsRoutes'));
@@ -81,7 +144,6 @@ app.use('/amistades', require('./src/routes/amistadesRoutes'));
 app.use('/conversaciones', require('./src/routes/conversacionesRoutes'));
 app.use('/notificaciones', require('./src/routes/notificacionesRoutes'));
 
-// Conexión a MongoDB y arranque del servidor
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
@@ -90,8 +152,8 @@ mongoose.connect(process.env.MONGO_URI, {
     console.log('✅ Conexión a MongoDB realizada');
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
-      console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
-      console.log(`📚 Swagger disponible en http://localhost:${PORT}/docs`);
+      console.log(`🚀 Servidor corriendo en http://127.0.0.1:${PORT}`);
+      console.log(`📚 Swagger disponible en http://127.0.0.1:${PORT}/docs`);
     });
   })
   .catch(err => {

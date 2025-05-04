@@ -13,7 +13,6 @@ const Home = () => {
     if (!loading && !user) {
       navigate('/auth');
     }
-    console.log('Usuario actual:', user); // Para debug
   }, [user, loading, navigate]);
 
   useEffect(() => {
@@ -22,7 +21,6 @@ const Home = () => {
         setShowProfileMenu(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
@@ -32,9 +30,7 @@ const Home = () => {
   const handleLogout = async () => {
     try {
       await logout();
-    } catch (error) {
-      console.error('Error al cerrar sesión:', error);
-    }
+    } catch {}
   };
 
   if (loading) {
@@ -47,7 +43,6 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-harmony-primary">
-      {/* Barra de navegación */}
       <nav className="bg-harmony-secondary/30 backdrop-blur-sm border-b border-harmony-text-secondary/10 p-4 relative z-40">
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center space-x-4">
@@ -90,12 +85,9 @@ const Home = () => {
         </div>
       </nav>
 
-      {/* Contenido principal */}
       <main className="container mx-auto p-4 relative z-30">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Columna izquierda - Perfil y amigos */}
           <div className="space-y-6">
-            {/* Tarjeta de perfil */}
             <div className="bg-harmony-secondary/30 backdrop-blur-sm rounded-lg p-4 border border-harmony-text-secondary/10">
               <div className="flex items-center space-x-4">
                 {user?.profilePic ? (
@@ -119,7 +111,6 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Lista de amigos */}
             <div className="bg-harmony-secondary/30 backdrop-blur-sm rounded-lg p-4 border border-harmony-text-secondary/10">
               <h3 className="text-harmony-text-primary font-semibold mb-4">Amigos</h3>
               <div className="space-y-2">
@@ -128,9 +119,7 @@ const Home = () => {
             </div>
           </div>
 
-          {/* Columna central - Feed de actividad */}
           <div className="space-y-6">
-            {/* Crear publicación */}
             <div className="bg-harmony-secondary/30 backdrop-blur-sm rounded-lg p-4 border border-harmony-text-secondary/10">
               <div className="flex space-x-4">
                 {user?.profilePic ? (
@@ -150,15 +139,12 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Feed de actividad */}
             <div className="space-y-4">
               <p className="text-harmony-text-secondary text-center">No hay actividad reciente</p>
             </div>
           </div>
 
-          {/* Columna derecha - Recomendaciones y chat */}
           <div className="space-y-6">
-            {/* Recomendaciones de música */}
             <div className="bg-harmony-secondary/30 backdrop-blur-sm rounded-lg p-4 border border-harmony-text-secondary/10">
               <h3 className="text-harmony-text-primary font-semibold mb-4">Recomendaciones</h3>
               <div className="space-y-4">
@@ -166,7 +152,6 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Chat rápido */}
             <div className="bg-harmony-secondary/30 backdrop-blur-sm rounded-lg p-4 border border-harmony-text-secondary/10">
               <h3 className="text-harmony-text-primary font-semibold mb-4">Chat</h3>
               <div className="space-y-2">
@@ -180,4 +165,4 @@ const Home = () => {
   );
 };
 
-export default Home; 
+export default Home;

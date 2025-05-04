@@ -18,22 +18,21 @@ export const AuthProvider = ({ children }) => {
     try {
       const data = await userService.getCurrentUser();
       setUser(data.user);
-    } catch (error) {
+    } catch {
       setUser(null);
     } finally {
       setLoading(false);
     }
   };
 
-  const login = async ({ email, password }) => {
+  const login = async ({ email, password }, showToast = true) => {
+    setLoading(true);
     try {
-      setLoading(true);
       const data = await userService.login(email, password);
       if (data.usuario) setUser(data.usuario);
-      toast.success('¡Inicio de sesión exitoso!');
+      if (showToast) toast.success('Bienvenido a HiFybe!');
       navigate('/');
     } catch (error) {
-      toast.error(error.response?.data?.mensaje || 'Error al iniciar sesión');
       throw error;
     } finally {
       setLoading(false);
@@ -41,11 +40,16 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (userData) => {
+    setLoading(true);
     try {
-      setLoading(true);
-      await userService.register(userData);
-      toast.success('¡Registro exitoso!');
-      await login({ email: userData.email, password: userData.password });
+      const res = await userService.register(userData);
+      if (res.mensaje && res.mensaje.includes("Inicia sesión")) {
+        throw new Error("Error en email.");
+      }
+      await login(
+        { email: userData.email, password: userData.password },
+        false
+      );
     } catch (error) {
       toast.error(error.response?.data?.mensaje || 'Error en el registro');
       throw error;
@@ -55,8 +59,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       await userService.logout();
       setUser(null);
       toast.success('¡Sesión cerrada!');
@@ -69,12 +73,14 @@ export const AuthProvider = ({ children }) => {
   };
 
   const googleLogin = () => {
-    window.location.href = 'http://localhost:5000/usuarios/google';
+    window.location.href = 'http://127.0.0.1:5000/usuarios/google';
   };
 
-  const appleLogin = () => { /* tu lógica */ };
+  const spotifyLogin = () => {
+    window.location.href = 'http://127.0.0.1:5000/usuarios/spotify';
+  };
 
-  const spotifyLogin = () => { /* tu lógica */ };
+  const appleLogin = () => {};
 
   const value = {
     user,

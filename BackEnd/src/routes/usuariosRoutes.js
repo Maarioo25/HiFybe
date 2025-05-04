@@ -5,10 +5,6 @@ const requireAuth = require('../middleware/auth');
 
 const router = express.Router();
 
-// Middleware de autenticación - Asegúrate de que verifica la sesión de Passport
-
-
-// Controladores de usuario y autenticación
 const {
   registrarUsuario,
   loginUsuario,
@@ -16,13 +12,20 @@ const {
   obtenerUsuarioPorId,
   actualizarUsuario,
   eliminarUsuario,
-  solicitarResetContrasena,
-  resetearContrasena,
+  
+  
   googleAuth,
   googleCallback,
-  googleAuthFailureHandler, // Importar el nuevo controlador
-  getCurrentUser, // Vamos a añadir este controlador para /me
-  logoutUser // Vamos a añadir este controlador para /logout
+  googleAuthFailureHandler,
+
+
+  spotifyAuth, 
+  spotifyCallback, 
+  spotifyAuthFailureHandler,
+
+
+  getCurrentUser,
+  logoutUser
 } = require('../controllers/usuariosController');
 
 /**
@@ -31,6 +34,8 @@ const {
  *   name: Usuarios
  *   description: Operaciones relacionadas con la gestión de usuarios en la aplicación
  */
+
+// Rutas públicas
 
 /**
  * @swagger
@@ -58,6 +63,8 @@ const {
  *     responses:
  *       201:
  *         description: Usuario registrado exitosamente.
+ *       403:
+ *         description: Error al registrar Usuario.
  */
 router.post('/register', registrarUsuario);
 
@@ -88,13 +95,111 @@ router.post('/login', loginUsuario);
 
 /**
  * @swagger
+ * /usuarios/google:
+ *   get:
+ *     summary: Iniciar autenticación con Google
+ *     description: Redirige al usuario al flujo de OAuth de Google.
+ *     tags: [Usuarios]
+ *     responses:
+ *       302:
+ *         description: Redirección a Google para login.
+ */
+router.get('/google', googleAuth);
+
+/**
+ * @swagger
+ * /usuarios/google/callback:
+ *   get:
+ *     summary: Callback de autenticación de Google
+ *     description: Punto de retorno de Google con el código de autorización.
+ *     tags: [Usuarios]
+ *     parameters:
+ *       - in: query
+ *         name: code
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Código de autorización proporcionado por Google.
+ *     responses:
+ *       302:
+ *         description: Redirección al frontend con token.
+ */
+router.get(
+  '/google/callback',
+  passport.authenticate('google', { failureRedirect: '/usuarios/google/failure', session: false }),
+  googleCallback
+);
+
+/**
+ * @swagger
+ * /usuarios/google/failure:
+ *   get:
+ *     summary: Manejador de fallo de autenticación con Google
+ *     description: Endpoint al que Google redirige en caso de fallo de autenticación. Redirige al frontend con un mensaje de error.
+ *     tags: [Usuarios]
+ *     responses:
+ *       302:
+ *         description: Redirección al frontend con error.
+ */
+router.get('/google/failure', googleAuthFailureHandler);
+
+
+/**
+ * @swagger
+ * /usuarios/spotify:
+ *   get:
+ *     summary: Iniciar autenticación con Spotify
+ *     tags: [Autenticación]
+ *     responses:
+ *       302:
+ *         description: Redirección a la página de inicio de sesión de Spotify
+ */
+router.get('/spotify', spotifyAuth);
+
+/**
+ * @swagger
+ * /usuarios/spotify/callback:
+ *   get:
+ *     summary: Callback de autenticación de Spotify
+ *     tags: [Autenticación]
+ *     responses:
+ *       200:
+ *         description: Usuario autenticado correctamente
+ *       302:
+ *         description: Redirección en caso de fallo de autenticación
+ */
+router.get(
+  '/spotify/callback',
+  passport.authenticate('spotify', {
+    failureRedirect: '/usuarios/spotify/failure',
+    session: false
+  }),
+  spotifyCallback
+);
+
+/**
+ * @swagger
+ * /usuarios/spotify/failure:
+ *   get:
+ *     summary: Maneja el fallo de autenticación de Spotify
+ *     tags: [Autenticación]
+ *     responses:
+ *       401:
+ *         description: Fallo en la autenticación con Spotify
+ */
+router.get('/spotify/failure', spotifyAuthFailureHandler);
+
+// Rutas que requieren autenticación
+
+/**
+ * @swagger
  * /usuarios/me:
  *   get:
  *     summary: Obtener datos del usuario autenticado
  *     description: Recupera la información del usuario actualmente autenticado a través de la cookie de sesión.
  *     tags: [Usuarios]
  *     security:
- *       - cookieAuth: [] # Indica que este endpoint requiere la cookie de autenticación
+ *       - cookieAuth: []
  *     responses:
  *       200:
  *         description: Datos del usuario autenticado.
@@ -111,7 +216,7 @@ router.post('/login', loginUsuario);
  *       500:
  *         description: Error del servidor.
  */
-router.get('/me', getCurrentUser);
+router.get('/me', requireAuth, getCurrentUser);
 
 /**
  * @swagger
@@ -126,7 +231,7 @@ router.get('/me', getCurrentUser);
  *       500:
  *         description: Error al cerrar sesión.
  */
-
+router.post('/logout', requireAuth, logoutUser);
 
 /**
  * @swagger
@@ -143,7 +248,7 @@ router.get('/me', getCurrentUser);
  *       401:
  *         description: No autenticado.
  */
-
+router.get('/', requireAuth, obtenerUsuarios);
 
 /**
  * @swagger
@@ -171,7 +276,7 @@ router.get('/me', getCurrentUser);
  *       404:
  *         description: No se encontró un usuario con ese ID.
  */
-
+router.get('/:id', requireAuth, obtenerUsuarioPorId);
 
 /**
  * @swagger
@@ -218,7 +323,7 @@ router.get('/me', getCurrentUser);
  *       404:
  *         description: No se encontró un usuario con ese ID.
  */
-
+router.put('/:id', requireAuth, actualizarUsuario);
 
 /**
  * @swagger
@@ -244,122 +349,6 @@ router.get('/me', getCurrentUser);
  *       404:
  *         description: Usuario no encontrado.
  */
-
-
-/**
- * @swagger
- * /usuarios/solicitar-reset:
- *   post:
- *     summary: Solicitar reseteo de contraseña
- *     description: Genera un token para realizar el reseteo de contraseña del usuario.
- *     tags: [Usuarios]
- *     requestBody:
- *       description: Correo electrónico asociado a la cuenta del usuario para solicitar el reseteo.
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               email:
- *                 type: string
- *     responses:
- *       200:
- *         description: Se generó y envió el token para reseteo de contraseña.
- */
-router.post('/solicitar-reset', solicitarResetContrasena);
-
-/**
- * @swagger
- * /usuarios/resetear-contrasena/{token}:
- *   post:
- *     summary: Reseteo de contraseña
- *     description: Permite al usuario actualizar su contraseña utilizando el token previamente generado.
- *     tags: [Usuarios]
- *     parameters:
- *       - in: path
- *         name: token
- *         required: true
- *         schema:
- *           type: string
- *         description: Token único para el reseteo de contraseña.
- *     requestBody:
- *       description: Nueva contraseña que se asignará al usuario.
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               nuevaContrasena:
- *                 type: string
- *     responses:
- *       200:
- *         description: Contraseña actualizada correctamente.
- */
-router.post('/resetear-contrasena/:token', resetearContrasena);
-
-/**
- * @swagger
- * /usuarios/google:
- *   get:
- *     summary: Iniciar autenticación con Google
- *     description: Redirige al usuario al flujo de OAuth de Google.
- *     tags: [Usuarios]
- *     responses:
- *       302:
- *         description: Redirección a Google para login.
- */
-router.get('/google', googleAuth);
-
-/**
- * @swagger
- * /usuarios/google/callback:
- *   get:
- *     summary: Callback de autenticación de Google
- *     description: Punto de retorno de Google con el código de autorización.
- *     tags: [Usuarios]
- *     parameters:
- *       - in: query
- *         name: code
- *         required: true
- *         schema:
- *           type: string
- *         description: Código de autorización proporcionado por Google.
- *     responses:
- *       302:
- *         description: Redirección al frontend con token.
- */
-router.get(
-  '/google/callback',
-  passport.authenticate('google', { failureRedirect: '/usuarios/google/failure', session: false }),
-  googleCallback
-);
-
-
-/**
- * @swagger
- * /usuarios/google/failure:
- *   get:
- *     summary: Manejador de fallo de autenticación con Google
- *     description: Endpoint al que Google redirige en caso de fallo de autenticación. Redirige al frontend con un mensaje de error.
- *     tags: [Usuarios]
- *     responses:
- *       302:
- *         description: Redirección al frontend con error.
- */
-router.get('/google/failure', googleAuthFailureHandler); // Nueva ruta para fallo de Google
-
-
-
-router.post('/logout', requireAuth, logoutUser); // Nueva ruta para cerrar sesión
-router.delete('/:id', requireAuth, eliminarUsuario); // Proteger esta ruta con requireAuth
-router.put('/:id', requireAuth, actualizarUsuario); // Proteger esta ruta con requireAuth
-router.get('/:id', requireAuth, obtenerUsuarioPorId); // Proteger esta ruta con requireAuth
-router.get('/', requireAuth, obtenerUsuarios); // Proteger esta ruta con requireAuth
-
-
-
-
+router.delete('/:id', requireAuth, eliminarUsuario);
 
 module.exports = router;
