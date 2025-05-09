@@ -37,13 +37,9 @@ exports.registrarUsuario = async (req, res) => {
     const usuarioExistePorCorreo = await Usuario.findOne({ email });
     const usuarioEstaRegistradoConGoogle = await Usuario.findOne({ email , auth_proveedor: 'google' })
     const usuarioEstaRegistradoConSpotify = await Usuario.findOne({ email , auth_proveedor: 'spotify' })
-    const usuarioEstaRegistradoConApple = await Usuario.findOne({ email , auth_proveedor: 'apple' })
 
     if (usuarioEstaRegistradoConGoogle)
       return res.status(403).json({ mensaje: 'Inicia sesión a través de Google.' });
-
-    if (usuarioEstaRegistradoConApple)
-      return res.status(403).json({ mensaje: 'Inicia sesión a través de Apple.' });
 
     if (usuarioEstaRegistradoConSpotify)
       return res.status(403).json({ mensaje: 'Inicia sesión a través de Spotify.' });
@@ -166,7 +162,7 @@ exports.eliminarUsuario = async (req, res) => {
 
 // ===================== GOOGLE OAUTH ===================== //
 
-exports.googleAuth = passport.authenticate('google', { scope: ['profile', 'email'] });
+exports.googleAuth = passport.authenticate('google', { scope: ['profile', 'email'], showDialog: true  });
 
 exports.googleCallback = async (req, res) => {
   if (req.user) {

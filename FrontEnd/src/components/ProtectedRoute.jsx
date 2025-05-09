@@ -13,7 +13,7 @@ const ProtectedRoute = ({ children }) => {
   }
 
   if (!user && !loading) {
-    return <Navigate to="/auth"/>;
+    return <Navigate to="/auth"/>;  
   }
 
   return children;

@@ -2,8 +2,13 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './context/AuthContext';
 import { Toaster } from 'react-hot-toast';
 import AuthForm from './components/AuthForm';
-import Home from './pages/Home';
+import MainPage from './pages/MainPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import Friends from "./pages/Friends";
+import FriendDetail from "./pages/FriendDetail";
+import Chats from "./pages/Chats";
+import Playlists from "./pages/Playlists";
+import PlaylistDetail from "./pages/PlaylistDetail";
 
 function App() {
   return (
@@ -38,10 +43,16 @@ function App() {
               path="/"
               element={
                 <ProtectedRoute>
-                  <Home />
+                  <MainPage />
                 </ProtectedRoute>
               }
             />
+            <Route path="/amigos" element={<Friends />} />
+            <Route path="/friends/:id" element={<FriendDetail />} />
+            <Route path="/friends/:id/playlists/:name" element={<PlaylistDetail />} />
+            <Route path="/chats" element={<Chats />} />
+            <Route path="/playlists" element={<Playlists />} />
+            <Route path="/playlists/:name" element={<PlaylistDetail />} />
             <Route path="*" element={<Navigate to="/auth" replace />} />
           </Routes>
         </div>
