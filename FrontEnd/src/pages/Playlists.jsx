@@ -1,6 +1,8 @@
 import React from 'react';
 import { FaPlus, FaEllipsisH, FaPlay } from 'react-icons/fa';
 import HeaderBar from '../components/HeaderBar';
+import { Link } from 'react-router-dom';
+
 
 const PLAYLISTS = [
   {
@@ -112,7 +114,7 @@ export default function Playlists() {
 
           <div className="overflow-y-auto scrollbar-thin h-[calc(60vh-28px)] px-6 pb-2">
             {PLAYLISTS.map((playlist) => (
-              <a href={`/playlists/${playlist.name}`} key={playlist.id} className="playlist-card relative group w-full flex items-center gap-4 p-4 rounded-xl bg-harmony-secondary/20 cursor-pointer hover:bg-harmony-secondary/30 transition-colors duration-200">
+              <Link to={`/playlists/${encodeURIComponent(playlist.name)}`} key={playlist.id} className="playlist-card relative group w-full flex items-center gap-4 p-4 rounded-xl bg-harmony-secondary/20 cursor-pointer hover:bg-harmony-secondary/30 transition-colors duration-200">
                 <div className="relative w-20 h-20 rounded-lg overflow-hidden shadow-md">
                   <img
                     src={playlist.cover}
@@ -137,7 +139,7 @@ export default function Playlists() {
                   </div>
                   <p className="text-sm text-harmony-text-secondary mt-1 line-clamp-2">{playlist.description}</p>
                 </div>
-              </a>
+              </Link>
             ))}
           </div>
         </div>

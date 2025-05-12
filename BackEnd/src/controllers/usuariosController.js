@@ -162,7 +162,11 @@ exports.eliminarUsuario = async (req, res) => {
 
 // ===================== GOOGLE OAUTH ===================== //
 
-exports.googleAuth = passport.authenticate('google', { scope: ['profile', 'email'], showDialog: true  });
+exports.googleAuth = passport.authenticate('google', {
+  scope: ['profile', 'email'],
+  prompt: 'select_account',
+  showDialog: true
+});
 
 exports.googleCallback = async (req, res) => {
   if (req.user) {

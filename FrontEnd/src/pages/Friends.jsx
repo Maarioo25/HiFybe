@@ -2,6 +2,8 @@ import React from 'react';
 import { FaUser, FaMusic, FaPlay, FaPlus } from 'react-icons/fa';
 import { FRIENDS } from '../data/friends';
 import HeaderBar from '../components/HeaderBar';
+import { Link } from 'react-router-dom';
+
 
 const friendsList = FRIENDS.map(friend => ({
   id: friend.id,
@@ -43,7 +45,7 @@ export default function Friends() {
                     </div>
                   </div>
                 ) : (
-                  <a href={`/friends/${amigo.id}`} key={amigo.id} className="friend-card relative group w-full h-50">
+                  <Link to={`/friends/${amigo.id}`} key={amigo.id} className="friend-card relative group w-full h-50">
                     <div className="relative w-full h-full rounded-xl overflow-hidden">
                       <div className="absolute inset-0">
                         <img
@@ -93,10 +95,10 @@ export default function Friends() {
                               <span className="text-xs text-white/70">{amigo.cancionDestacada.artista}</span>
                             </div>
                           </div>
-                        </div>
+                        </div>  
                       </div>
                     </div>
-                  </a>
+                  </Link>
                 )
               ))}
             </div>

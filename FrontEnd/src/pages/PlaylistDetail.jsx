@@ -156,7 +156,7 @@ const PLAYLISTS = [
 function PlaylistDetail() {
   const { id, name } = useParams();
   const navigate = useNavigate();
-  const playlist = PLAYLISTS.find(p => p.name === name);
+  const playlist = PLAYLISTS.find(p => p.id === id);
 
   if (!playlist) {
     return (

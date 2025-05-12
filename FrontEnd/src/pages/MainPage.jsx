@@ -312,7 +312,7 @@ export default function MainPage() {
   const audioRef = useRef(null);
 
   // --- Estado para pestaña activa en la zona de amigos/recomendaciones ---
-  const [activeTab, setActiveTab] = useState('amigos'); // 'amigos' o 'recomendaciones'
+  const [activeTab, setActiveTab] = useState('friends'); // 'amigos' o 'recomendaciones'
 
   if (loading) {
     return (
@@ -393,8 +393,8 @@ export default function MainPage() {
             <div className="bg-harmony-secondary/30 backdrop-blur-sm rounded-2xl p-6 border border-harmony-text-secondary/10 flex flex-col h-[calc(70vh)] max-h-[calc(70vh)]">
               <div className="flex items-center mb-4 gap-2">
                 <button
-                  className={`px-4 py-1 rounded-full font-semibold text-sm transition border shadow-sm focus:outline-none ${activeTab === 'amigos' ? 'bg-harmony-accent text-white border-harmony-accent' : 'bg-transparent text-harmony-accent border-transparent hover:bg-harmony-accent/10'}`}
-                  onClick={() => setActiveTab('amigos')}
+                  className={`px-4 py-1 rounded-full font-semibold text-sm transition border shadow-sm focus:outline-none ${activeTab === 'friends' ? 'bg-harmony-accent text-white border-harmony-accent' : 'bg-transparent text-harmony-accent border-transparent hover:bg-harmony-accent/10'}`}
+                  onClick={() => setActiveTab('friends')}
                 >
                   Amigos
                 </button>
@@ -406,7 +406,7 @@ export default function MainPage() {
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-harmony-accent/40 scrollbar-track-transparent pr-1">
-                {activeTab === 'amigos' && (
+                {activeTab === 'friends' && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {USERS.map((amigo, idx) => (
                       <div

@@ -9,6 +9,7 @@ import FriendDetail from "./pages/FriendDetail";
 import Chats from "./pages/Chats";
 import Playlists from "./pages/Playlists";
 import PlaylistDetail from "./pages/PlaylistDetail";
+import PublicPlaylistDetail from './pages/PublicPlaylistDetail';
 
 function App() {
   return (
@@ -39,20 +40,26 @@ function App() {
           />
           <Routes>
             <Route path="/auth" element={<AuthForm />} />
+            
+            {/* Rutas protegidas */}
             <Route
-              path="/"
               element={
                 <ProtectedRoute>
-                  <MainPage />
+                  <></>
                 </ProtectedRoute>
               }
-            />
-            <Route path="/amigos" element={<Friends />} />
-            <Route path="/friends/:id" element={<FriendDetail />} />
-            <Route path="/friends/:id/playlists/:name" element={<PlaylistDetail />} />
-            <Route path="/chats" element={<Chats />} />
-            <Route path="/playlists" element={<Playlists />} />
-            <Route path="/playlists/:name" element={<PlaylistDetail />} />
+            >
+              <Route path="/" element={<MainPage />} />
+              <Route path="/friends" element={<Friends />} />
+              <Route path="/friends/:id" element={<FriendDetail />} />
+              <Route path="/friends/:id/playlists/:name" element={<PlaylistDetail />} />
+              <Route path="/chats" element={<Chats />} />
+              <Route path="/playlists" element={<Playlists />} />
+              <Route path="/playlists/:id" element={<PlaylistDetail />} />
+              <Route path="/friends/:id/playlists/:name" element={<PublicPlaylistDetail />} />
+
+            </Route>
+
             <Route path="*" element={<Navigate to="/auth" replace />} />
           </Routes>
         </div>
@@ -61,4 +68,4 @@ function App() {
   );
 }
 
-export default App; 
+export default App;

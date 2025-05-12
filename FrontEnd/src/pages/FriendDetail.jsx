@@ -3,6 +3,7 @@ import { FaMusic, FaPlay, FaArrowLeft } from 'react-icons/fa';
 import HeaderBar from '../components/HeaderBar';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FRIENDS } from '../data/friends';
+import { Link } from 'react-router-dom';
 
 function encontrarAmigoPorId(id) {
   return FRIENDS.find(friend => friend.id === parseInt(id));
@@ -31,7 +32,7 @@ export default function FriendDetail() {
         <div className="flex items-center gap-4 mb-8">
           <button 
             className="text-harmony-accent hover:text-harmony-accent/80"
-            onClick={() => navigate("/amigos")}
+            onClick={() => navigate("/friends")}
           >
             <FaArrowLeft className="text-lg" />
           </button>
@@ -82,7 +83,7 @@ export default function FriendDetail() {
           <h3 className="text-xl font-bold text-harmony-accent mb-6">Playlists Públicas</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {friend.playlists?.map((playlist) => (
-              <a href={`/friends/${id}/playlists/${playlist.nombre}`} key={playlist.id} className="playlist-card relative group w-full h-48 flex items-center gap-4 p-4 rounded-xl bg-harmony-secondary/20 cursor-pointer hover:bg-harmony-secondary/30 transition-colors duration-200">
+              <Link to={`/friends/${id}/playlists/${playlist.nombre}`} key={playlist.id} className="playlist-card relative group w-full h-48 flex items-center gap-4 p-4 rounded-xl bg-harmony-secondary/20 cursor-pointer hover:bg-harmony-secondary/30 transition-colors duration-200">
                 <div className="relative w-24 h-24 rounded-lg overflow-hidden shadow-md">
                   <img
                     src={playlist.imagen}
@@ -106,7 +107,7 @@ export default function FriendDetail() {
                     <span>{playlist.duracion}</span>
                   </div>
                 </div>
-              </a>
+              </Link>
             ))}
           </div>
         </div>

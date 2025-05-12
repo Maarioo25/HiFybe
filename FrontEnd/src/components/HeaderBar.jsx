@@ -124,14 +124,15 @@ export default function HeaderBar({ children, onSongSelect }) {
             <span>Inicio</span>
           </button>
           <button
-            className={`px-3 py-1 rounded-full text-harmony-text-primary hover:bg-harmony-accent/10 hover:text-harmony-accent font-semibold transition flex items-center gap-2 ${location.pathname.startsWith("/friends") || location.pathname === "/amigos" ? "bg-harmony-accent/20 text-harmony-accent" : ""}`}
-            onClick={() => navigate("/amigos")}
+            className={`px-3 py-1 rounded-full text-harmony-text-primary hover:bg-harmony-accent/10 hover:text-harmony-accent font-semibold transition flex items-center gap-2 ${location.pathname.includes("/playlists") ? "" : (location.pathname.startsWith("/friends") || location.pathname === "/friends")? "bg-harmony-accent/20 text-harmony-accent": ""}`}
+
+            onClick={() => navigate("/friends")}
           >
             <FaUserFriends className="text-lg" />
             <span>Amigos</span>
           </button>
           <button
-            className={`px-3 py-1 rounded-full text-harmony-text-primary hover:bg-harmony-accent/10 hover:text-harmony-accent font-semibold transition flex items-center gap-2 ${location.pathname.startsWith("/playlists") ? "bg-harmony-accent/20 text-harmony-accent" : ""}`}
+            className={`px-3 py-1 rounded-full text-harmony-text-primary hover:bg-harmony-accent/10 hover:text-harmony-accent font-semibold transition flex items-center gap-2 ${location.pathname.includes("/playlists") ? "bg-harmony-accent/20 text-harmony-accent" : ""}`}
             onClick={() => navigate("/playlists")}
           >
             <FaMusic className="text-lg" />
@@ -147,6 +148,62 @@ export default function HeaderBar({ children, onSongSelect }) {
         </div>
       </div>
       {children}
+      {/* Icono de perfil y menú de usuario */}
+      <div className="relative flex items-center">
+        <ProfileMenu user={user} logout={logout} />
+      </div>
     </nav>
+  );
+}
+
+// --- Menú de perfil desplegable ---
+import { FaUserCircle, FaSignOutAlt, FaCog } from "react-icons/fa";
+
+function ProfileMenu({ user, logout }) {
+  const [open, setOpen] = React.useState(false);
+  const menuRef = React.useRef(null);
+
+  React.useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        className="ml-4 text-harmony-accent hover:text-harmony-accent/80 focus:outline-none text-3xl"
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Opciones de perfil"
+      >
+        <FaUserCircle />
+      </button>
+      {open && (
+        <div className="absolute right-0 mt-2 w-48 bg-harmony-primary/95 rounded-xl shadow-xl border border-harmony-accent/20 z-50 animate-fade-in-down">
+          <div className="px-4 py-3 border-b border-harmony-accent/10">
+            <span className="font-semibold text-harmony-accent text-base block">{user?.name || 'Mi perfil'}</span>
+            <span className="text-xs text-harmony-text-secondary">{user?.email}</span>
+          </div>
+          <button
+            className="w-full flex items-center gap-2 px-4 py-3 hover:bg-harmony-accent/10 text-harmony-text-primary text-sm transition"
+            onClick={() => {/* Aquí puedes navegar a la página de perfil */ setOpen(false); }}
+          >
+            <FaCog className="text-lg" />
+            Ajustes de perfil
+          </button>
+          <button
+            className="w-full flex items-center gap-2 px-4 py-3 hover:bg-harmony-accent/10 text-harmony-text-primary text-sm transition"
+            onClick={() => { logout(); setOpen(false); }}
+          >
+            <FaSignOutAlt className="text-lg" />
+            Cerrar sesión
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
